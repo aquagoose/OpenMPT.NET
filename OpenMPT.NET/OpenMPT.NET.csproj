@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -14,11 +14,11 @@
             <Pack>true</Pack>
             <PackagePath>runtimes/win-x64/native/</PackagePath>
         </Content>
-        <Content Include="libopenmpt.so.3">
+        <None Include="libopenmpt.so">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Pack>true</Pack>
             <PackagePath>runtimes/linux-x64/native/</PackagePath>
-        </Content>
+        </None>
     </ItemGroup>
 
 </Project>
