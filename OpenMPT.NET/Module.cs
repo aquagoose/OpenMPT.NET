@@ -8,22 +8,7 @@ using static MptNative;
 public unsafe class Module : IDisposable
 {
     private IntPtr _module;
-
-    /// <summary>
-    /// The number of channels of this module.
-    /// </summary>
-    public readonly int Channels;
     
-    /// <summary>
-    /// The sample rate of this module.
-    /// </summary>
-    public readonly int SampleRate;
-    
-    /// <summary>
-    /// The floating-point interleaved buffer.
-    /// </summary>
-    public readonly float[] Buffer;
-
     /// <summary>
     /// Get the current song position in seconds.
     /// </summary>
@@ -41,26 +26,16 @@ public unsafe class Module : IDisposable
     private Module(IntPtr module)
     {
         _module = module;
-
-        SampleRate = 48000;
-        Channels = 2;
-        Buffer = new float[SampleRate];
-
         Params = new RenderParams(_module);
     }
 
-    /// <summary>
-    /// Advance the buffer, returning the number of samples advanced by.
-    /// </summary>
-    /// <returns>The number of samples advanced by.</returns>
-    public int AdvanceBuffer()
+    public ulong ReadInterleavedStereo(uint sampleRate, Span<float> buffer)
     {
-        nuint read;
+        ulong read;
+        fixed (float* pBuffer = buffer)
+            read = ModuleReadInterleavedFloatStereo(_module, (int) sampleRate, (nuint) (buffer.Length / 2), pBuffer);
 
-        fixed (float* ptr = Buffer)
-            read = ModuleReadInterleavedFloatStereo(_module, SampleRate, (nuint) (Buffer.Length / 2), ptr);
-
-        return (int) read;
+        return read;
     }
 
     /// <summary>

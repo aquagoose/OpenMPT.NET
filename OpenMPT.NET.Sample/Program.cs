@@ -2,9 +2,10 @@
 using Pie.Audio;
 
 const ushort channel = 0;
+const uint sampleRate = 48000;
 
 // Create the Pie audio device.
-AudioDevice device = new AudioDevice(48000, 1);
+AudioDevice device = new AudioDevice((int) sampleRate, 1);
 
 // Load our module, using some of the provided module options.
 Module module = Module.FromMemory(File.ReadAllBytes("/home/aqua/.wine/drive_c/GOG Games/Jazz Jackrabbit 2/Castle.j2b"));
@@ -15,17 +16,14 @@ Console.WriteLine($"{metadata.Artist ?? "Unknown Artist"} - {metadata.Title ?? "
 
 // Create our buffers and fill them.
 AudioBuffer[] buffers = new AudioBuffer[2];
+// Half a second buffer. (Sample Rate / 2 channels)
+float[] songBuffer = new float[sampleRate];
 for (int i = 0; i < buffers.Length; i++)
 {
-    // We must first advance the buffer. This function returns how many samples it advanced by (a value of 0 says the
-    // song has reached the end). The number of samples MAY NOT equal the length of the buffer.
-    // In the case of a stereo buffer, the number of samples return will be Buffer.Length / 2.
-    int numSamples = module.AdvanceBuffer();
+    module.ReadInterleavedStereo(sampleRate, songBuffer);
     
     // Create our buffers. The buffer is a floating point PCM buffer.
-    buffers[i] = device.CreateBuffer(
-        new BufferDescription(DataType.Pcm, new AudioFormat((byte) module.Channels, module.SampleRate, FormatType.F32)), 
-        module.Buffer[..(numSamples * 2)]);
+    buffers[i] = device.CreateBuffer(new BufferDescription(DataType.Pcm, new AudioFormat(2, (int) sampleRate, FormatType.F32)), songBuffer);
 }
 
 int currentBuffer = 0;
@@ -42,7 +40,7 @@ device.BufferFinished += (system, channel, buffer) =>
         
         // This code is similar to the code when we created the buffers.
         // Advance the buffer, and check to see if it is 0. If it is, stop the channel playing.
-        int numSamples = module.AdvanceBuffer();
+        ulong numSamples = module.ReadInterleavedStereo(sampleRate, songBuffer);
         if (numSamples == 0)
         {
             system.Stop(channel);
@@ -50,7 +48,7 @@ device.BufferFinished += (system, channel, buffer) =>
         }
 
         // Update the buffer with new data, and queue it again, to create circular buffers.
-        system.UpdateBuffer(buffers[currentBuffer], module.Buffer[..(numSamples * 2)]);
+        system.UpdateBuffer(buffers[currentBuffer], songBuffer);
         system.QueueBuffer(buffers[currentBuffer], channel);
         
         //Console.WriteLine("Done!");
