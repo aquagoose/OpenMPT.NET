@@ -35,6 +35,8 @@ public unsafe class Module : IDisposable
     public double DurationInSeconds => ModuleGetDurationSeconds(_module);
 
     public ModuleMetadata Metadata => ModuleMetadata.FromModule(_module);
+    
+    public RenderParams Params;
 
     private Module(IntPtr module)
     {
@@ -43,6 +45,8 @@ public unsafe class Module : IDisposable
         SampleRate = 48000;
         Channels = 2;
         Buffer = new float[SampleRate];
+
+        Params = new RenderParams(_module);
     }
 
     /// <summary>
@@ -80,87 +84,20 @@ public unsafe class Module : IDisposable
         return ModuleSetPositionSeconds(_module, seconds);
     }
 
-    public void SetParameter(ModuleParameter parameter, int value)
-    {
-        ModuleSetRenderParam(_module, parameter, value);
-    }
-
-    public int GetParameter(ModuleParameter parameter)
-    {
-        int value;
-        ModuleGetRenderParam(_module, parameter, &value);
-
-        return value;
-    }
-
     /// <summary>
     /// Create a <see cref="Module"/> from memory.
     /// </summary>
     /// <param name="memory">The module file.</param>
-    /// <param name="options">Any module options.</param>
     /// <returns>The loaded module.</returns>
     /// <exception cref="ModuleLoadException">Thrown if the module fails to load.</exception>
-    public static Module FromMemory(byte[] memory, ModuleOptions options)
+    public static Module FromMemory(byte[] memory)
     {
         IntPtr module;
-        
-        // What the heck is this???
-        // Seriously
-        // What in absolute atrocity is this?
-        // TODO: PinnedString you idiot!!
-
-        Ctl[] ctls = new Ctl[4];
-
-        string behaviorKey = "play.at_end";
-        string behaviorValue = options.EndBehavior.ToString().ToLower();
-        
-        string tempoKey = "play.tempo_factor";
-        string tempoValue = options.TempoFactor.ToString();
-        
-        string pitchKey = "play.pitch_factor";
-        string pitchValue = options.PitchFactor.ToString();
-
-        string emulateAmigaKey = "render.resampler.emulate_amiga";
-        string emulateAmigaValue = options.EmulateAmigaResampler ? "1" : "0";
-        
-        GCHandle behaviorKeyHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(behaviorKey), GCHandleType.Pinned);
-        GCHandle behaviorValueHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(behaviorValue), GCHandleType.Pinned);
-        
-        GCHandle tempoKeyHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(tempoKey), GCHandleType.Pinned);
-        GCHandle tempoValueHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(tempoValue), GCHandleType.Pinned);
-        
-        GCHandle pitchKeyHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(pitchKey), GCHandleType.Pinned);
-        GCHandle pitchValueHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(pitchValue), GCHandleType.Pinned);
-        
-        GCHandle emulateAmigaKeyHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(emulateAmigaKey), GCHandleType.Pinned);
-        GCHandle emulateAmigaValueHandle = GCHandle.Alloc(Encoding.ASCII.GetBytes(emulateAmigaValue), GCHandleType.Pinned);
-
-        ctls[0] = new Ctl((sbyte*) behaviorKeyHandle.AddrOfPinnedObject(),
-            (sbyte*) behaviorValueHandle.AddrOfPinnedObject());
-        
-        ctls[1] = new Ctl((sbyte*) tempoKeyHandle.AddrOfPinnedObject(),
-            (sbyte*) tempoValueHandle.AddrOfPinnedObject());
-        
-        ctls[2] = new Ctl((sbyte*) pitchKeyHandle.AddrOfPinnedObject(),
-            (sbyte*) pitchValueHandle.AddrOfPinnedObject());
-
-        ctls[3] = new Ctl((sbyte*) emulateAmigaKeyHandle.AddrOfPinnedObject(),
-            (sbyte*) emulateAmigaValueHandle.AddrOfPinnedObject());
 
         int error;
-        
-        fixed (byte* ptr = memory)
-        fixed (Ctl* ctlptr = ctls)
-            module = ModuleCreateFromMemory(ptr, (nuint) memory.Length, null, null, null, null, &error, null, ctlptr);
 
-        behaviorKeyHandle.Free();
-        behaviorValueHandle.Free();
-        tempoKeyHandle.Free();
-        tempoValueHandle.Free();
-        pitchKeyHandle.Free();
-        pitchValueHandle.Free();
-        emulateAmigaKeyHandle.Free();
-        emulateAmigaValueHandle.Free();
+        fixed (byte* ptr = memory)
+            module = ModuleCreateFromMemory(ptr, (nuint) memory.Length, null, null, null, null, &error, null, null);
 
         ModuleResult result = (ModuleResult) error;
         

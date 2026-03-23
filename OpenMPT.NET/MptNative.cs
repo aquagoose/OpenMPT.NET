@@ -33,10 +33,10 @@ public static unsafe class MptNative
     public static extern double ModuleGetPositionSeconds(IntPtr mod);
     
     [DllImport(LibName, EntryPoint = "openmpt_module_set_render_param")]
-    public static extern int ModuleSetRenderParam(IntPtr mod, ModuleParameter parameter, int value);
+    public static extern int ModuleSetRenderParam(IntPtr mod, int parameter, int value);
 
     [DllImport(LibName, EntryPoint = "openmpt_module_get_render_param")]
-    public static extern int ModuleGetRenderParam(IntPtr mod, ModuleParameter parameter, int* value);
+    public static extern int ModuleGetRenderParam(IntPtr mod, int parameter, int* value);
 
     [DllImport(LibName, EntryPoint = "openmpt_module_get_duration_seconds")]
     public static extern double ModuleGetDurationSeconds(IntPtr mod);

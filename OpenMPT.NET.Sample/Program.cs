@@ -7,8 +7,8 @@ const ushort channel = 0;
 AudioDevice device = new AudioDevice(48000, 1);
 
 // Load our module, using some of the provided module options.
-Module module = Module.FromMemory(File.ReadAllBytes("ag-winmare.it"),
-    new ModuleOptions(endBehavior: EndBehavior.Stop, tempoFactor: 1.0f, pitchFactor: 1.0f));
+Module module = Module.FromMemory(File.ReadAllBytes("/home/aqua/.wine/drive_c/GOG Games/Jazz Jackrabbit 2/Castle.j2b"));
+module.Params.InterpolationFilter = Filter.Linear;
 
 ModuleMetadata metadata = module.Metadata;
 Console.WriteLine($"{metadata.Artist ?? "Unknown Artist"} - {metadata.Title ?? "Unknown Title"}");
