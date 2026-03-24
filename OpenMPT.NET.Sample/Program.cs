@@ -8,7 +8,7 @@ const uint sampleRate = 48000;
 AudioDevice device = new AudioDevice((int) sampleRate, 1);
 
 // Load our module, using some of the provided module options.
-Module module = Module.FromMemory(File.ReadAllBytes("/home/aqua/.wine/drive_c/GOG Games/Jazz Jackrabbit 2/Castle.j2b"));
+Module module = Module.FromMemory(File.ReadAllBytes("ag-sundrv.mptm"));
 module.Params.InterpolationFilter = Filter.Linear;
 
 ModuleMetadata metadata = module.Metadata;
