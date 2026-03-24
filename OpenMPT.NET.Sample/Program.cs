@@ -29,7 +29,9 @@ public class Program
         if (device == 0)
             throw new Exception($"Failed to open audio device: {sdl.GetErrorS()}");
         
-        _module = Module.FromMemory(File.ReadAllBytes("ag-sundrv.mptm"), new ModuleOptions(pitchFactor: 1.0f));
+        _module = Module.FromMemory(File.ReadAllBytes("ag-sundrv.mptm"));
+        Console.WriteLine(_module.RenderParams);
+        Console.WriteLine(_module.Config);
         //_module.Params.InterpolationFilter = Filter.Linear;
 
         ModuleMetadata metadata = _module.Metadata;
@@ -42,7 +44,7 @@ public class Program
         
         while (_readSamples < _module.DurationInSeconds * SampleRate)
         {
-            Thread.Sleep(1000);
+            Thread.Sleep(250);
     
             double seconds = _module.PositionInSeconds;
             Console.WriteLine($"{(int) seconds / 60:00}:{(int) seconds % 60:00}");

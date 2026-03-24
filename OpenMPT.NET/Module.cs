@@ -22,12 +22,15 @@ public unsafe class Module : IDisposable
 
     public ModuleMetadata Metadata => ModuleMetadata.FromModule(_module);
     
-    public RenderParams Params;
+    public RenderParams RenderParams;
+
+    public ModuleConfig Config;
 
     private Module(IntPtr module)
     {
         _module = module;
-        Params = new RenderParams(_module);
+        RenderParams = new RenderParams(_module);
+        Config = new ModuleConfig(_module);
     }
 
     public ulong ReadInterleavedStereo(uint sampleRate, Span<float> buffer)
@@ -35,6 +38,15 @@ public unsafe class Module : IDisposable
         ulong read;
         fixed (float* pBuffer = buffer)
             read = ModuleReadInterleavedFloatStereo(_module, (int) sampleRate, (nuint) (buffer.Length / 2), pBuffer);
+
+        return read;
+    }
+
+    public ulong ReadInterleavedStereo(uint sampleRate, Span<short> buffer)
+    {
+        ulong read;
+        fixed (short* pBuffer = buffer)
+            read = ModuleReadInterleavedStereo(_module, (int) sampleRate, (nuint) (buffer.Length / 2), pBuffer);
 
         return read;
     }
@@ -66,16 +78,16 @@ public unsafe class Module : IDisposable
     /// <param name="memory">The module file.</param>
     /// <returns>The loaded module.</returns>
     /// <exception cref="ModuleLoadException">Thrown if the module fails to load.</exception>
-    public static Module FromMemory(byte[] memory, ModuleOptions options)
+    public static Module FromMemory(byte[] memory, LoadOptions options = new LoadOptions())
     {
         IntPtr module;
 
         Ctl[] ctls =
         [
-            new Ctl("play.at_end", options.EndBehavior.ToString().ToLower()),
-            new Ctl("play.tempo_factor", options.TempoFactor.ToString(CultureInfo.InvariantCulture)),
-            new Ctl("play.pitch_factor", options.PitchFactor.ToString(CultureInfo.InvariantCulture)),
-            new Ctl("render.resampler.emulate_amiga", options.EmulateAmigaResampler ? "1" : "0")
+            new Ctl(CTL_Load_SkipSamples, options.SkipSamples ? "1" : "0"),
+            new Ctl(CTL_Load_SkipPatterns, options.SkipPatterns ? "1" : "0"),
+            new Ctl(CTL_Load_SkipPlugins, options.SkipPlugins ? "1" : "0"),
+            new Ctl(CTL_Load_SkipSubsongsInit, options.SkipSubsongsInit ? "1" : "0")
         ];
 
         int error;

@@ -3,7 +3,7 @@ using static OpenMPT.NET.MptNative;
 
 namespace OpenMPT.NET;
 
-public unsafe struct RenderParams
+public readonly unsafe record struct RenderParams
 {
     private const int MasterGainMillibel = 1;
     private const int StereoSeparationPercent = 2;
