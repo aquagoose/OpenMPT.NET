@@ -14,10 +14,15 @@
             <Pack>true</Pack>
             <PackagePath>runtimes/win-x64/native/</PackagePath>
         </Content>
-        <None Include="libopenmpt.so">
+        <None Include="*.so">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Pack>true</Pack>
             <PackagePath>runtimes/linux-x64/native/</PackagePath>
+        </None>
+        <None Include="*.dylib">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Pack>true</Pack>
+            <PackagePath>runtimes/osx-arm64/native/</PackagePath>
         </None>
     </ItemGroup>
 
