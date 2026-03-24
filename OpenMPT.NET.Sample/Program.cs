@@ -1,88 +1,62 @@
-﻿using OpenMPT.NET;
-using Pie.Audio;
+﻿using Silk.NET.SDL;
+using Thread = System.Threading.Thread;
 
-const ushort channel = 0;
-const uint sampleRate = 48000;
+namespace OpenMPT.NET.Sample;
 
-// Create the Pie audio device.
-AudioDevice device = new AudioDevice((int) sampleRate, 1);
-
-// Load our module, using some of the provided module options.
-Module module = Module.FromMemory(File.ReadAllBytes("ag-sundrv.mptm"));
-module.Params.InterpolationFilter = Filter.Linear;
-
-ModuleMetadata metadata = module.Metadata;
-Console.WriteLine($"{metadata.Artist ?? "Unknown Artist"} - {metadata.Title ?? "Unknown Title"}");
-
-// Create our buffers and fill them.
-AudioBuffer[] buffers = new AudioBuffer[2];
-// Half a second buffer. (Sample Rate / 2 channels)
-float[] songBuffer = new float[sampleRate];
-for (int i = 0; i < buffers.Length; i++)
+public class Program
 {
-    module.ReadInterleavedStereo(sampleRate, songBuffer);
+    private const uint SampleRate = 48000;
     
-    // Create our buffers. The buffer is a floating point PCM buffer.
-    buffers[i] = device.CreateBuffer(new BufferDescription(DataType.Pcm, new AudioFormat(2, (int) sampleRate, FormatType.F32)), songBuffer);
-}
-
-int currentBuffer = 0;
-
-device.BufferFinished += (system, channel, buffer) =>
-{
-    // We should run our buffer filling code on a separate thread. As (currently) mixr calls this function on the audio
-    // thread, it is very susceptible to stalling. As libopenmpt generates the audio in real time, tracks can often
-    // stall the audio thread. By running on a separate thread, you prevent this from happening.
-    // (This stalling issue MAY be fixed in later mixr versions).
-    Task.Run(() =>
+    private static Module _module = null!;
+    private static ulong _readSamples;
+    
+    public static unsafe void Main(string[] args)
     {
-        //Console.Write($"Filling buffer {currentBuffer}... ");
-        
-        // This code is similar to the code when we created the buffers.
-        // Advance the buffer, and check to see if it is 0. If it is, stop the channel playing.
-        ulong numSamples = module.ReadInterleavedStereo(sampleRate, songBuffer);
-        if (numSamples == 0)
+        Sdl sdl = Sdl.GetApi();
+        if (sdl.Init(Sdl.InitAudio) < 0)
+            throw new Exception($"Failed to initialize SDL: {sdl.GetErrorS()}");
+
+        AudioSpec spec = new()
         {
-            system.Stop(channel);
-            return;
+            Freq = (int) SampleRate,
+            Samples = 512,
+            Channels = 2,
+            Format = Sdl.AudioF32,
+            Callback = new PfnAudioCallback(AudioCallback)
+        };
+
+        uint device = sdl.OpenAudioDevice((byte*) null, 0, &spec, null, 0);
+        if (device == 0)
+            throw new Exception($"Failed to open audio device: {sdl.GetErrorS()}");
+        
+        _module = Module.FromMemory(File.ReadAllBytes("ag-sundrv.mptm"), new ModuleOptions(pitchFactor: 1.0f));
+        //_module.Params.InterpolationFilter = Filter.Linear;
+
+        ModuleMetadata metadata = _module.Metadata;
+        Console.WriteLine($"{metadata.Artist ?? "Unknown Artist"} - {metadata.Title ?? "Unknown Title"}");
+
+        double durationSeconds = _module.DurationInSeconds;
+        Console.WriteLine($"{(int) durationSeconds / 60:00}:{(int) durationSeconds % 60:00}");
+
+        sdl.PauseAudioDevice(device, 0);
+        
+        while (_readSamples < _module.DurationInSeconds * SampleRate)
+        {
+            Thread.Sleep(1000);
+    
+            double seconds = _module.PositionInSeconds;
+            Console.WriteLine($"{(int) seconds / 60:00}:{(int) seconds % 60:00}");
         }
 
-        // Update the buffer with new data, and queue it again, to create circular buffers.
-        system.UpdateBuffer(buffers[currentBuffer], songBuffer);
-        system.QueueBuffer(buffers[currentBuffer], channel);
-        
-        //Console.WriteLine("Done!");
+        sdl.CloseAudioDevice(device);
+        _module.Dispose();
+        sdl.Quit();
+        sdl.Dispose();
+    }
 
-        // Increase the current buffer, looping back round to 0 if it has run out of buffers to fill.
-        currentBuffer++;
-        if (currentBuffer >= buffers.Length)
-            currentBuffer = 0;
-    });
-};
-
-// Play the first buffer, then queue any remaining buffers.
-device.PlayBuffer(buffers[0], channel, new ChannelProperties(speed: 1.0));
-for (int i = 1; i < buffers.Length; i++)
-    device.QueueBuffer(buffers[i], channel);
-
-double durationSeconds = module.DurationInSeconds;
-Console.WriteLine($"{(int) durationSeconds / 60:00}:{(int) durationSeconds % 60:00}");
-
-// Sleep while the device is playing.
-while (device.IsPlaying(channel))
-{
-    Thread.Sleep(1000);
-    
-    double seconds = module.PositionInSeconds;
-    Console.WriteLine($"{(int) seconds / 60:00}:{(int) seconds % 60:00}");
+    private static unsafe void AudioCallback(void* arg0, byte* arg1, int arg2)
+    {
+        Span<float> buffer = new Span<float>(arg1, arg2 / 4);
+        _readSamples += _module.ReadInterleavedStereo(SampleRate, buffer);
+    }
 }
-
-// Once done, dispose of the module...
-module.Dispose();
-
-// ... the buffers...
-for (int i = 0; i < buffers.Length; i++)
-    device.DeleteBuffer(buffers[i]);
-    
-// ... and finally the device itself.
-device.Dispose();

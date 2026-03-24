@@ -13,13 +13,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Pie.Audio" Version="0.8.2" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Update="ag-sundrv.mptm">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Silk.NET.SDL" Version="2.23.0" />
     </ItemGroup>
 
 </Project>

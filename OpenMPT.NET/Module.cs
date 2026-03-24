@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -65,14 +66,23 @@ public unsafe class Module : IDisposable
     /// <param name="memory">The module file.</param>
     /// <returns>The loaded module.</returns>
     /// <exception cref="ModuleLoadException">Thrown if the module fails to load.</exception>
-    public static Module FromMemory(byte[] memory)
+    public static Module FromMemory(byte[] memory, ModuleOptions options)
     {
         IntPtr module;
+
+        Ctl[] ctls =
+        [
+            new Ctl("play.at_end", options.EndBehavior.ToString().ToLower()),
+            new Ctl("play.tempo_factor", options.TempoFactor.ToString(CultureInfo.InvariantCulture)),
+            new Ctl("play.pitch_factor", options.PitchFactor.ToString(CultureInfo.InvariantCulture)),
+            new Ctl("render.resampler.emulate_amiga", options.EmulateAmigaResampler ? "1" : "0")
+        ];
 
         int error;
 
         fixed (byte* ptr = memory)
-            module = ModuleCreateFromMemory(ptr, (nuint) memory.Length, null, null, null, null, &error, null, null);
+        fixed (Ctl* pCtls = ctls)
+            module = ModuleCreateFromMemory(ptr, (nuint) memory.Length, null, null, null, null, &error, null, pCtls);
 
         ModuleResult result = (ModuleResult) error;
         

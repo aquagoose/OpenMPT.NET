@@ -52,29 +52,10 @@ public static unsafe class MptNative
         public sbyte* Key;
         public sbyte* Value;
 
-        public Ctl(sbyte* key, sbyte* value)
+        public Ctl(string key, string value)
         {
-            Key = key;
-            Value = value;
+            Key = (sbyte*) Marshal.StringToHGlobalAnsi(key);
+            Value = (sbyte*) Marshal.StringToHGlobalAnsi(value);
         }
-
-        /*public Ctl(string key, string value)
-        {
-            byte[] keyBytes = Encoding.ASCII.GetBytes(key);
-            Key = (sbyte*) NativeMemory.Alloc((nuint) key.Length);
-            fixed (byte* ptr = keyBytes)
-                Unsafe.CopyBlock(Key, ptr, (uint) key.Length);
-            
-            byte[] valueBytes = Encoding.ASCII.GetBytes(value);
-            Value = (sbyte*) NativeMemory.Alloc((nuint) value.Length);
-            fixed (byte* ptr = valueBytes)
-                Unsafe.CopyBlock(Value, ptr, (uint) value.Length);
-        }
-
-        public void Dispose()
-        {
-            NativeMemory.Free(Key);
-            NativeMemory.Free(Value);
-        }*/
     }
 }
